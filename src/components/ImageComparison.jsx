@@ -1,16 +1,13 @@
+// src/components/ImageComparison.jsx
 import React, { useRef, useEffect, useState } from "react";
 
-export default function ImageComparison({
-  before,
-  after,
-  width = 600,
-  height = 350,
-}) {
+export default function ImageComparison({ before, after }) {
   const containerRef = useRef(null);
   const overlayRef = useRef(null);
   const sliderRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
 
+  // Ensure images are loaded
   useEffect(() => {
     const imgs = containerRef.current.querySelectorAll("img");
     let count = 0;
@@ -28,25 +25,32 @@ export default function ImageComparison({
   useEffect(() => {
     if (!loaded) return;
 
+    const container = containerRef.current;
     const overlay = overlayRef.current;
     const slider = sliderRef.current;
-    const container = containerRef.current;
-    if (!overlay || !slider || !container) return;
+    if (!container || !overlay || !slider) return;
 
     let clicked = false;
-    const w = container.offsetWidth;
-    const h = container.offsetHeight;
+    let w = 0;
+    let h = 0;
 
-    // Initial position (middle)
-    let currentX = w / 2;
-    overlay.style.clipPath = `inset(0 ${w - currentX}px 0 0)`;
-    slider.style.left = `${currentX - slider.offsetWidth / 2}px`;
-    slider.style.top = `${h / 2 - slider.offsetHeight / 2}px`;
+    const updateSlider = () => {
+      w = container.offsetWidth;
+      h = container.offsetHeight;
+
+      // Initial position (middle)
+      const currentX = w / 2;
+      overlay.style.clipPath = `inset(0 ${w - currentX}px 0 0)`;
+      slider.style.left = `${currentX - slider.offsetWidth / 2}px`;
+      slider.style.top = `${h / 2 - slider.offsetHeight / 2}px`;
+    };
+
+    updateSlider();
 
     const getCursorPos = (e) => {
       e = e.changedTouches ? e.changedTouches[0] : e;
       const rect = container.getBoundingClientRect();
-      let x = e.pageX - rect.left - window.pageXOffset;
+      let x = e.clientX - rect.left;
       if (x < 0) x = 0;
       if (x > w) x = w;
       return x;
@@ -79,6 +83,7 @@ export default function ImageComparison({
     slider.addEventListener("touchstart", slideReady);
     window.addEventListener("mouseup", slideFinish);
     window.addEventListener("touchend", slideFinish);
+    window.addEventListener("resize", updateSlider);
 
     return () => {
       slider.removeEventListener("mousedown", slideReady);
@@ -87,23 +92,24 @@ export default function ImageComparison({
       window.removeEventListener("touchend", slideFinish);
       window.removeEventListener("mousemove", slideMove);
       window.removeEventListener("touchmove", slideMove);
+      window.removeEventListener("resize", updateSlider);
     };
   }, [loaded]);
 
   return (
     <div
       ref={containerRef}
-      className="relative overflow-hidden rounded-xl shadow-lg bg-gray-200"
-      style={{ width, height }}
+      className="relative w-full sm:w-[90%] md:w-full max-w-2xl mx-auto overflow-hidden rounded-xl shadow-lg bg-gray-200"
+      style={{ aspectRatio: "16/9" }}
     >
-      {/* Left (before) image */}
+      {/* Before Image */}
       <img
         src={before}
         alt="before"
         className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
       />
 
-      {/* Right (after) image, fixed — clip only */}
+      {/* After Image overlay */}
       <div ref={overlayRef} className="absolute inset-0">
         <img
           src={after}
